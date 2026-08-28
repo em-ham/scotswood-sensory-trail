@@ -14,9 +14,7 @@ function loadState(){
  }catch{return {...defaultState,updatedAt:Date.now()}}
 }
 function save(){state.updatedAt=Date.now();localStorage.setItem(TRAIL_STORAGE_KEY,JSON.stringify(state));}
-function showPrivacy(){
-  alert("Your privacy\n\nYou do not need to provide your name, email address or create an account to use the Sensory Trail.\n\nAny notes, photos and drawings you add are stored in your browser on your device. They are not sent to or stored by Scotswood Garden.\n\nYour Sensory Trail PDF is created on your device for you to download and keep.\n\nYour saved trail information is automatically removed after 7 days of inactivity, and you can clear it at any time using Start a New Trail.\n\nPlease avoid including personal information in your notes or taking photographs of other visitors without their permission.\n\nThis website is hosted using GitHub Pages.");
-}
+function showPrivacy(){alert('YOUR PRIVACY\n\nYou do not need to give us your name, email address or create an account to use the Sensory Trail.\n\nNotes, drawings and photos you add are stored in this browser on this device and are used to create your personal Sensory Trail journal. This app does not send your journal entries, photos or drawings to Scotswood Garden.\n\nYour trail data is automatically cleared from this browser after 7 days of inactivity. You can also clear it at any time using “Start a new trail”.\n\nPlease avoid including personal information in your notes or taking photographs of other visitors without their permission.\n\nThe website is hosted by Netlify, which may process ordinary technical information such as IP address and browser/device information when serving the site.');}
 function setScreen(screen){stopSpeaking();state.screen=screen;save();render();window.scrollTo(0,0)}
 function esc(s=''){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
 function applyAccess(){document.documentElement.style.setProperty('--font-scale',state.largeText?'1.15':'1');document.body.classList.toggle('high-contrast',state.contrast)}
