@@ -71,24 +71,80 @@ function goBack(){stopSpeaking();if(state.screen==='entry'||state.screen==='mind
 function toggleLarge(){state.largeText=!state.largeText;save();render()}
 function toggleContrast(){state.contrast=!state.contrast;save();render()}
 let currentUtterance=null;
-function updateSpeechButtons(speaking){document.querySelectorAll('.listen-btn').forEach(btn=>{btn.textContent=speaking?'■ Stop reading':'🔊 Listen';btn.classList.toggle('speaking',speaking);btn.setAttribute('aria-pressed',speaking?'true':'false');btn.setAttribute('aria-label',speaking?'Stop reading aloud':'Read this page aloud')})}
-function stopSpeaking(){if('speechSynthesis' in window){speechSynthesis.cancel()}currentUtterance=null;updateSpeechButtons(false)}
-function toggleSpeech(){
- if(!('speechSynthesis' in window))return alert('Read aloud is not supported in this browser.');
- if(speechSynthesis.speaking || currentUtterance){stopSpeaking();return}
- const clone=app.cloneNode(true);
- clone.querySelectorAll('.access,.iconbtn,.navrow,.actions,.edit-btn,.privacy-link,input,textarea,canvas,.canvas-tools,button').forEach(el=>el.remove());
- const text=clone.innerText.replace(/\s+/g,' ').trim();
- if(!text)return;
- currentUtterance=new SpeechSynthesisUtterance(text);
- currentUtterance.onstart=()=>updateSpeechButtons(true);
- currentUtterance.onend=()=>{currentUtterance=null;updateSpeechButtons(false)};
- currentUtterance.onerror=()=>{currentUtterance=null;updateSpeechButtons(false)};
- speechSynthesis.cancel();
- speechSynthesis.speak(currentUtterance);
- updateSpeechButtons(true);
+
+function updateSpeechButtons(speaking){
+  document.querySelectorAll('.listen-btn').forEach(btn=>{
+    btn.textContent=speaking?'■ Stop reading':'🔊 Listen';
+    btn.classList.toggle('speaking',speaking);
+    btn.setAttribute('aria-pressed',speaking?'true':'false');
+    btn.setAttribute('aria-label',speaking?'Stop reading aloud':'Read this page aloud');
+  });
 }
-function speakCurrent(){toggleSpeech()}
+
+function stopSpeaking(){
+  if('speechSynthesis' in window){
+    window.speechSynthesis.cancel();
+  }
+  currentUtterance=null;
+  updateSpeechButtons(false);
+}
+
+function toggleSpeech(){
+  if(!('speechSynthesis' in window)){
+    alert('Read aloud is not supported in this browser.');
+    return;
+  }
+
+  const synth=window.speechSynthesis;
+
+  if(synth.speaking || currentUtterance){
+    stopSpeaking();
+    return;
+  }
+
+  const clone=app.cloneNode(true);
+
+  clone.querySelectorAll('.access,.iconbtn,.navrow,.actions,.edit-btn,.privacy-link,input,textarea,canvas,.canvas-tools,button').forEach(el=>el.remove());
+
+  const text=clone.innerText.replace(/\s+/g,' ').trim();
+
+  if(!text){
+    alert('There is nothing to read on this page.');
+    return;
+  }
+
+  try{
+    currentUtterance=new SpeechSynthesisUtterance(text);
+    currentUtterance.lang='en-GB';
+    currentUtterance.rate=0.9;
+
+    currentUtterance.onend=()=>{
+      currentUtterance=null;
+      updateSpeechButtons(false);
+    };
+
+    currentUtterance.onerror=()=>{
+      currentUtterance=null;
+      updateSpeechButtons(false);
+    };
+
+    synth.cancel();
+
+    // Change the button immediately.
+    updateSpeechButtons(true);
+
+    synth.speak(currentUtterance);
+
+  }catch(error){
+    currentUtterance=null;
+    updateSpeechButtons(false);
+    alert('Read aloud could not be started. Please try again.');
+  }
+}
+
+function speakCurrent(){
+  toggleSpeech();
+}
 function openPhotoPicker(){document.getElementById('photoPicker')?.click()}
 function handlePhoto(e){const file=e.target.files[0];if(!file)return; const img=new Image(), r=new FileReader(); r.onload=ev=>img.src=ev.target.result; img.onload=()=>{const max=1200, scale=Math.min(1,max/Math.max(img.width,img.height)); const c=document.createElement('canvas');c.width=Math.max(1,Math.round(img.width*scale));c.height=Math.max(1,Math.round(img.height*scale));c.getContext('2d').drawImage(img,0,0,c.width,c.height);state.photos[state.stop]=c.toDataURL('image/jpeg',.76);save();setScreen('entry')};r.readAsDataURL(file)}
 function deletePhoto(){delete state.photos[state.stop];save();renderEntry()}
