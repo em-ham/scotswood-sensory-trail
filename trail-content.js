@@ -16,7 +16,7 @@
 
 const stops = [
   {
-    title: 'The Orchard Path', icon: '🍃', kicker: 'Look closely',
+    title: 'The Orchard Path', icon: '🍃', kicker: 'Look closely', audioStart: 90, audioEnd: 127,
     intro: 'This long path is filled with a variety of plants and trees. Slow down as you walk and notice the plants on either side.',
     sections: [
       {label:'👁️ 🤚 Look closely at the leaves', text:'How many different kinds can you find? Notice their shape, size, colour, pattern and texture.', bullets:['A leaf smaller than your thumb','One bigger than your hand','The darkest and lightest greens','A leaf with an unusual edge','Two leaves that feel completely different']},
@@ -26,7 +26,7 @@ const stops = [
     noteHint:'Describe what caught your attention, or anything else you want to remember.'
   },
   {
-    title: 'The Chamomile Lawn', icon: '🌱', kicker: 'Feel & notice',
+    title: 'The Chamomile Lawn', icon: '🌱', kicker: 'Feel & notice', audioStart: 127, audioEnd: 159,
     intro: 'Take some time to explore the chamomile lawn.',
     sections: [
       {label:'🤚 Feel', text:'If it is comfortable and safe for you, gently touch the chamomile. How would you describe it?', chips:'soft · springy · tickly · cool · warm · damp · dry'},
@@ -37,7 +37,7 @@ const stops = [
     noteHint:'Add anything you would like to remember from this stop.', mindful:true
   },
   {
-    title: 'Look, Listen & Feel', icon: '🪨', kicker: 'Explore texture',
+    title: 'Look, Listen & Feel', icon: '🪨', kicker: 'Explore texture', audioStart: 159, audioEnd: 197,
     intro: 'This area is all about exploring different textures and surfaces.',
     sections: [
       {label:'🤚 Feel beneath you', text:'There are different surfaces on the ground here. If it feels comfortable, close your eyes for a moment. Can you sense the differences through your feet, chair or mobility aid?'},
@@ -47,7 +47,7 @@ const stops = [
     noteHint:'You might also like to take a close-up photo of an interesting texture.'
   },
   {
-    title: 'The Mandala Beds', icon: '🌸', kicker: 'Use your nose',
+    title: 'The Mandala Beds', icon: '🌸', kicker: 'Use your nose', audioStart: 197, audioEnd: 232,
     intro: 'There is a lot to discover here, so give yourself time to explore. This is a wonderful place to use your nose.',
     sections: [
       {label:'👃 Smell', text:'Gently smell some of the herbs and flowers. If appropriate, gently rub a leaf between your fingers. Does this change or strengthen its smell? Can you find two plants that smell completely different?'},
@@ -57,7 +57,7 @@ const stops = [
     noteHint:'You could photograph the plant it came from.'
   },
   {
-    title: 'The Serenity Seat', icon: '🪑', kicker: 'Stop & observe',
+    title: 'The Serenity Seat', icon: '🪑', kicker: 'Stop & observe', audioStart: 232, audioEnd: 264,
     intro: 'Take a moment to sit on the bench. Tucked away amongst the plants, this is a perfect place to stop and observe.',
     sections: [
       {label:'👁️ Sit and watch', text:'Stay still for a little while. Can you spot a bird, bee, butterfly, beetle or another small visitor?'},
@@ -79,7 +79,7 @@ const stops = [
     noteHint:'Add anything from this part of the garden that you want to remember.'
   },
   {
-    title: 'The Forest Path', icon: '🌳', kicker: 'Notice the change',
+    title: 'The Forest Path', icon: '🌳', kicker: 'Notice the change', audioStart: 264, audioEnd: 334,
     intro: 'This tree-shaded path can feel quite different from the open and paved areas of the garden.',
     sections: [
       {label:'🤚 👃 Notice the change', text:'As you enter the trees, notice how your surroundings change. Does the ground feel different beneath you? Has the temperature changed? What happens to the light? Does the air smell different?'},
@@ -91,7 +91,7 @@ const stops = [
     noteHint:'You might like to photograph some of the different bark.'
   },
   {
-    title: 'The Bird Hide & Wildflower Meadow', icon: '🐦', kicker: 'Pause & reflect',
+    title: 'The Bird Hide & Wildflower Meadow', icon: '🐦', kicker: 'Pause & reflect', audioStart: 334, audioEnd: 390.912,
     intro: 'Find a comfortable place in the bird hide and stop for a while.',
     sections: [
       {label:'👁️ Look', text:'Look out across the wildflower meadow. What colours can you see today? Can you see anything moving amongst the flowers?'},
