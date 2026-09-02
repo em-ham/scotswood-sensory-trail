@@ -102,6 +102,17 @@ function renderEntry(){const s=stops[state.stop], note=state.notes[state.stop]||
  <div class="card"><label>My drawing (optional)</label><div class="canvas-wrap"><canvas id="drawCanvas" width="760" height="480" aria-label="Drawing canvas"></canvas><div class="canvas-tools"><button class="secondary" onclick="setupCanvas('pen')">Pen</button><button class="secondary" onclick="setupCanvas('erase')">Erase</button><button class="secondary" onclick="clearCanvas()">Clear</button></div></div></div>
  <div class="navrow"><button class="secondary" onclick="setScreen('stop')">← Back</button><button class="primary" onclick="nextStop()">${state.returnToSummary?'Return to My Trail':state.stop===stops.length-1?'Finish trail':'Next stop'} →</button></div></section>`; setTimeout(setupCanvas,20)}
 
+function render(){
+  applyAccess();
+  if(state.screen==='welcome') return renderWelcome();
+  if(state.screen==='stop') return renderStop();
+  if(state.screen==='entry') return renderEntry();
+  if(state.screen==='summary') return renderSummary();
+  if(state.screen==='mindful') return renderMindful();
+  state.screen='welcome';
+  return renderWelcome();
+}
+
 function renderSummary(){
  const items=stops.map((s,i)=>{const p=state.photos[i], n=state.notes[i], d=state.drawings[i]; return `<div class="summary-item"><div>${p?`<img src="${p}" alt="Trail photo for ${s.title}">`:`<div class="placeholder">${s.icon}</div>`}</div><div class="summary-copy"><strong>${i+1} · ${s.title}</strong><p>${n?esc(n):'<span class="small">Nothing recorded yet — that’s completely fine.</span>'}</p>${d?'<span class="small">🎨 Drawing added</span>':''}<button class="edit-btn" onclick="editStop(${i})">${n||p||d?'Edit / add to this stop':'＋ Add something'}</button></div></div>`}).join('');
  app.innerHTML=`<section class="screen"><div class="topbar"><button class="iconbtn" onclick="state.returnToSummary=false;setScreen('stop')" aria-label="Back to trail">←</button><div class="progress">My Sensory Trail</div><button class="iconbtn" onclick="resetTrail()" aria-label="Start a new trail">↻</button></div>
