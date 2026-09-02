@@ -14,26 +14,70 @@ function loadState(){
  }catch{return {...defaultState,updatedAt:Date.now()}}
 }
 function save(){state.updatedAt=Date.now();localStorage.setItem(TRAIL_STORAGE_KEY,JSON.stringify(state));}
-const PRIVACY_TEXT="YOUR PRIVACY\n\nYou do not need to give us your name, email address or create an account to use the Sensory Trail.\n\nNotes, drawings and photos you add are stored in this browser on this device and are used to create your personal Sensory Trail journal. This app does not send your journal entries, photos or drawings to Scotswood Garden.\n\nYour trail data is automatically cleared from this browser after 7 days of inactivity. You can also clear it at any time using \u201cStart a new trail\u201d.\n\nPlease avoid including personal information in your notes or taking photographs of other visitors without their permission.\n\nThe website is hosted by GitHub, which may process ordinary technical information such as IP address and browser/device information when serving the site.";
-function showPrivacy(){alert(PRIVACY_TEXT);}
+function showPrivacy(){alert('YOUR PRIVACY\n\nYou do not need to give us your name, email address or create an account to use the Sensory Trail.\n\nNotes, drawings and photos you add are stored in this browser on this device and are used to create your personal Sensory Trail journal. This app does not send your journal entries, photos or drawings to Scotswood Garden.\n\nYour trail data is automatically cleared from this browser after 7 days of inactivity. You can also clear it at any time using “Start a new trail”.\n\nPlease avoid including personal information in your notes or taking photographs of other visitors without their permission.\n\nThe website is hosted by GitHub, which may process ordinary technical information such as IP address and browser/device information when serving the site.');}
 function setScreen(screen){stopSpeaking();state.screen=screen;save();render();window.scrollTo(0,0)}
 function esc(s=''){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
 function applyAccess(){document.documentElement.style.setProperty('--font-scale',state.largeText?'1.15':'1');document.body.classList.toggle('high-contrast',state.contrast)}
 function topbar(){return `<div class="topbar"><button class="iconbtn" onclick="goBack()" aria-label="Go back">←</button><div class="brand-mini"><img src="scotswood-logo.png" alt=""><span>Scotswood Garden</span></div><div class="progress">Stop ${state.stop+1} of ${stops.length}</div><button class="iconbtn" onclick="setScreen('summary')" aria-label="Open my trail">☰</button></div>`}
-function accessBar(){return `<div class="access"><button class="secondary" onclick="toggleLarge()">A+ Text</button><button class="secondary" onclick="toggleContrast()">◐ Contrast</button><button class="secondary listen-btn" onclick="toggleSpeech()" aria-pressed="false">🔊 Listen</button></div>`}
+function accessBar(){return `<div class="access"><button class="secondary" onclick="toggleLarge()">A+ Text</button><button class="secondary" onclick="toggleContrast()">◐ Contrast</button></div>`}
 
-function render(){
- applyAccess();
- if(state.screen==='welcome') return renderWelcome();
- if(state.screen==='stop') return renderStop();
- if(state.screen==='mindful') return renderMindful();
- if(state.screen==='entry') return renderEntry();
- if(state.screen==='summary') return renderSummary();
+const TRAIL_AUDIO='audio/sensory-trail-full.mp3';
+let trailAudio=null;
+
+function stopTrailAudio(){
+  if(trailAudio){
+    trailAudio.pause();
+    trailAudio.currentTime=0;
+    trailAudio.onplay=null;
+    trailAudio.onpause=null;
+    trailAudio.onended=null;
+    trailAudio.ontimeupdate=null;
+    trailAudio.onerror=null;
+  }
+  trailAudio=null;
+}
+
+function setupStopAudio(index,start,end){
+  const audio=document.getElementById('trailAudio');
+  if(!audio)return;
+  trailAudio=audio;
+  audio.dataset.start=String(start);
+  audio.dataset.end=String(end);
+
+  audio.addEventListener('play',()=>{
+    const from=Number(audio.dataset.start);
+    const to=Number(audio.dataset.end);
+    if(audio.currentTime<from || audio.currentTime>=to-0.05){
+      audio.currentTime=from;
+    }
+  });
+
+  audio.addEventListener('timeupdate',()=>{
+    const to=Number(audio.dataset.end);
+    if(audio.currentTime>=to){
+      audio.pause();
+      audio.currentTime=Number(audio.dataset.start);
+    }
+  });
+
+  audio.addEventListener('ended',()=>{
+    audio.currentTime=Number(audio.dataset.start);
+  });
+
+  audio.addEventListener('error',()=>{
+    const box=document.querySelector('.audio-error');
+    if(box)box.hidden=false;
+  });
+}
+
+function audioBox(s,index){
+  if(s.audioStart==null||s.audioEnd==null)return '';
+  return `<div class="card audio-card"><h3>🎧 Listen to your guide</h3><p>Listen to your guide as you explore this stop. You can also use the written prompts below, or enjoy both together.</p><audio id="trailAudio" preload="metadata" controls src="${TRAIL_AUDIO}" aria-label="Audio guide for ${esc(s.title)}"></audio><p class="small audio-error" hidden>Audio could not be loaded. Please check your internet connection and try again.</p></div>`;
 }
 
 function renderWelcome(){
  app.innerHTML=`<section class="screen"><div class="hero"><div class="welcome-brand"><img src="scotswood-logo.png" alt="Scotswood Garden"><div class="welcome-brand-name">Scotswood Garden</div></div><h1>Sensory Trail</h1><p>Take a little time to notice</p></div>
- <div class="card soft"><p>Follow the trail and use the prompts to explore the garden through your senses.</p><p>At each stop, you’ll find a few suggested activities. There is no need to do them all. They are simply invitations to <strong>slow down, look a little closer, listen, smell, touch and notice what is around you.</strong></p><p>You can make notes, take photos or draw as you go — or simply enjoy the experience. You can come back and add your thoughts at the end.</p><p>Slowing down and paying attention to our senses can help us feel more present and connected to the world around us.</p><button class="privacy-link" onclick="showPrivacy()">Privacy & your trail data</button></div>
+ <div class="card soft"><p>Follow the trail and use the prompts to explore the garden through your senses.</p><p>At each stop, you’ll find a few suggested activities. There is no need to do them all. They are simply invitations to <strong>slow down, look a little closer, listen, smell, touch and notice what is around you.</strong></p><p>As you go, you can <strong>listen to the audio guide, use the written activities, or both.</strong></p><p>You can also <strong>make notes, take photos or draw</strong> as you explore — or simply enjoy the experience. You can return to any stop to add or change your thoughts and, at the end, <strong>download your trail journal as a PDF.</strong></p><p>Slowing down and paying attention to our senses can help us feel more present and connected to the world around us.</p><button class="privacy-link" onclick="showPrivacy()">Privacy & your trail data</button></div>
  <div class="card"><h3>Activity key</h3><div class="key-grid"><span>👁️ <strong>LOOK</strong></span><span>👂 <strong>LISTEN</strong></span><span>👃 <strong>SMELL</strong></span><span>🤚 <strong>TOUCH & FEEL</strong></span><span>🧠 <strong>THINK & REMEMBER</strong></span></div></div>
  <div class="card"><label>Today's date</label><input type="text" value="${esc(state.date)}" onchange="state.date=this.value;save()"><p><strong>What season does it feel like today?</strong></p><div class="choices">${['Spring','Summer','Autumn','Winter'].map(x=>`<button class="choice ${state.season===x?'selected':''}" onclick="state.season='${x}';save();render()">${x}</button>`).join('')}</div></div>
  <button class="primary" onclick="state.stop=0;state.returnToSummary=false;setScreen('stop')">Start the trail →</button>${accessBar()}</section>`;
@@ -41,21 +85,14 @@ function renderWelcome(){
 
 function renderSections(s){return s.sections.map(sec=>`<div class="activity-block"><h3>${sec.label}</h3><p>${sec.text}</p>${sec.chips?`<p class="chips">${sec.chips}</p>`:''}${sec.bullets?`<ul>${sec.bullets.map(b=>`<li>${b}</li>`).join('')}</ul>`:''}</div>`).join('')}
 
-function setupTrailAudio(start,end){
- const audio=document.getElementById('trailAudio');
- if(!audio)return;
- audio.addEventListener('loadedmetadata',()=>{audio.currentTime=start});
- audio.addEventListener('play',()=>{if(audio.currentTime<start || audio.currentTime>=end) audio.currentTime=start});
- audio.addEventListener('timeupdate',()=>{if(audio.currentTime>=end){audio.pause();audio.currentTime=start}});
-}
-
 function renderStop(){const s=stops[state.stop];
  app.innerHTML=`<section class="screen">${topbar()}<div><div class="leafmark">${s.icon}</div><h2>${state.stop+1} · ${s.title}</h2><div class="kicker">${s.kicker}</div><p class="stop-intro">${s.intro}</p></div>
- <div class="card audio-card"><h3>🎧 Listen to your guide</h3><p>Listen to your guide as you explore this stop. You can also use the written prompts below, or enjoy both together.</p><audio id="trailAudio" preload="metadata" controls src="audio/sensory-trail-full.mp3" aria-label="Audio guide for ${esc(s.title)}"></audio></div>
+ ${audioBox(s,state.stop)}
+ ${state.stop===5?'<div class="card soft"><h3>An optional extra: Accessible Garden</h3><p>Before continuing to the Forest Path, you can choose to spend some time exploring the Accessible Garden.</p><p>This section isn’t included in the recorded audio, but you can use the written sensory prompts here to explore at your own pace.</p><p><strong>When you’re ready, continue to the Forest Path.</strong></p></div>':''}
  <div class="card activity-card">${renderSections(s)}</div>
  <div class="card"><h3>Add to your journal</h3><div class="journal-prompts">${s.journal.map(j=>`<p>• ${j}</p>`).join('')}</div><div class="actions"><button class="action-btn" onclick="setScreen('entry')">✏️<span>Add a note</span></button><button class="action-btn" onclick="openPhotoPicker()">📷<span>Add a photo</span></button><button class="action-btn" onclick="setScreen('entry');setTimeout(setupCanvas,50)">🎨<span>Draw something</span></button></div><p class="small">You don't have to add anything — noticing is enough.</p></div>
  ${s.mindful?`<button class="secondary pause-btn" onclick="setScreen('mindful')">Take a one-minute pause</button>`:''}
- <div class="navrow"><button class="secondary" onclick="goBack()">← Back</button><button class="primary" onclick="nextStop()">${state.returnToSummary?'Return to My Trail':state.stop===stops.length-1?'Finish trail':'Next stop'} →</button></div>${accessBar()}<input id="photoPicker" class="hidden" type="file" accept="image/*" capture="environment" onchange="handlePhoto(event)"></section>`; setupTrailAudio(Number(s.audioStart),Number(s.audioEnd));}
+ <div class="navrow"><button class="secondary" onclick="goBack()">← Back</button><button class="primary" onclick="nextStop()">${state.returnToSummary?'Return to My Trail':state.stop===stops.length-1?'Finish trail':'Next stop'} →</button></div>${accessBar()}<input id="photoPicker" class="hidden" type="file" accept="image/*" capture="environment" onchange="handlePhoto(event)"></section>`; setupStopAudio(state.stop,Number(s.audioStart),Number(s.audioEnd));}
 
 function renderMindful(){app.innerHTML=`<section class="screen mindful"><div class="card"><div class="leafmark">🍃</div><h2>Take a moment</h2><p>Put your phone down for one minute.</p><p><strong>Look around. Listen. See what you notice.</strong></p></div><button class="primary" onclick="setScreen('stop')">I've noticed something →</button></section>`}
 
@@ -64,6 +101,17 @@ function renderEntry(){const s=stops[state.stop], note=state.notes[state.stop]||
  <div class="card"><label>My photo (optional)</label><p class="small">🔒 Your photo stays in this browser and is used only for your trail journal. Please avoid photographing other visitors without their permission.</p>${photo?`<img class="photo-preview" src="${photo}" alt="Your uploaded trail photo"><button class="secondary" onclick="deletePhoto()">Remove photo</button>`:`<button class="secondary" onclick="openPhotoPicker()">📷 Add a photo</button>`}<input id="photoPicker" class="hidden" type="file" accept="image/*" capture="environment" onchange="handlePhoto(event)"></div>
  <div class="card"><label>My drawing (optional)</label><div class="canvas-wrap"><canvas id="drawCanvas" width="760" height="480" aria-label="Drawing canvas"></canvas><div class="canvas-tools"><button class="secondary" onclick="setupCanvas('pen')">Pen</button><button class="secondary" onclick="setupCanvas('erase')">Erase</button><button class="secondary" onclick="clearCanvas()">Clear</button></div></div></div>
  <div class="navrow"><button class="secondary" onclick="setScreen('stop')">← Back</button><button class="primary" onclick="nextStop()">${state.returnToSummary?'Return to My Trail':state.stop===stops.length-1?'Finish trail':'Next stop'} →</button></div></section>`; setTimeout(setupCanvas,20)}
+
+function render(){
+  applyAccess();
+  if(state.screen==='welcome') return renderWelcome();
+  if(state.screen==='stop') return renderStop();
+  if(state.screen==='entry') return renderEntry();
+  if(state.screen==='summary') return renderSummary();
+  if(state.screen==='mindful') return renderMindful();
+  state.screen='welcome';
+  return renderWelcome();
+}
 
 function renderSummary(){
  const items=stops.map((s,i)=>{const p=state.photos[i], n=state.notes[i], d=state.drawings[i]; return `<div class="summary-item"><div>${p?`<img src="${p}" alt="Trail photo for ${s.title}">`:`<div class="placeholder">${s.icon}</div>`}</div><div class="summary-copy"><strong>${i+1} · ${s.title}</strong><p>${n?esc(n):'<span class="small">Nothing recorded yet — that’s completely fine.</span>'}</p>${d?'<span class="small">🎨 Drawing added</span>':''}<button class="edit-btn" onclick="editStop(${i})">${n||p||d?'Edit / add to this stop':'＋ Add something'}</button></div></div>`}).join('');
@@ -80,25 +128,7 @@ function nextStop(){stopSpeaking();saveCanvas(); if(state.returnToSummary){state
 function goBack(){stopSpeaking();if(state.screen==='entry'||state.screen==='mindful')return setScreen('stop');if(state.screen==='stop'&&state.returnToSummary){state.returnToSummary=false;return setScreen('summary')}if(state.screen==='stop'&&state.stop>0){state.stop--;save();render();window.scrollTo(0,0)}else setScreen('welcome')}
 function toggleLarge(){state.largeText=!state.largeText;save();render()}
 function toggleContrast(){state.contrast=!state.contrast;save();render()}
-let currentUtterance=null;
-function updateSpeechButtons(speaking){document.querySelectorAll('.listen-btn').forEach(btn=>{btn.textContent=speaking?'■ Stop reading':'🔊 Listen';btn.classList.toggle('speaking',speaking);btn.setAttribute('aria-pressed',speaking?'true':'false');btn.setAttribute('aria-label',speaking?'Stop reading aloud':'Read this page aloud')})}
-function stopSpeaking(){if('speechSynthesis' in window){speechSynthesis.cancel()}currentUtterance=null;updateSpeechButtons(false)}
-function toggleSpeech(){
- if(!('speechSynthesis' in window))return alert('Read aloud is not supported in this browser.');
- if(speechSynthesis.speaking || currentUtterance){stopSpeaking();return}
- const clone=app.cloneNode(true);
- clone.querySelectorAll('.access,.iconbtn,.navrow,.actions,.edit-btn,.privacy-link,input,textarea,canvas,.canvas-tools,button').forEach(el=>el.remove());
- const text=clone.innerText.replace(/\s+/g,' ').trim();
- if(!text)return;
- currentUtterance=new SpeechSynthesisUtterance(text);
- currentUtterance.onstart=()=>updateSpeechButtons(true);
- currentUtterance.onend=()=>{currentUtterance=null;updateSpeechButtons(false)};
- currentUtterance.onerror=()=>{currentUtterance=null;updateSpeechButtons(false)};
- speechSynthesis.cancel();
- speechSynthesis.speak(currentUtterance);
- updateSpeechButtons(true);
-}
-function speakCurrent(){toggleSpeech()}
+function stopSpeaking(){stopTrailAudio()}
 function openPhotoPicker(){document.getElementById('photoPicker')?.click()}
 function handlePhoto(e){const file=e.target.files[0];if(!file)return; const img=new Image(), r=new FileReader(); r.onload=ev=>img.src=ev.target.result; img.onload=()=>{const max=1200, scale=Math.min(1,max/Math.max(img.width,img.height)); const c=document.createElement('canvas');c.width=Math.max(1,Math.round(img.width*scale));c.height=Math.max(1,Math.round(img.height*scale));c.getContext('2d').drawImage(img,0,0,c.width,c.height);state.photos[state.stop]=c.toDataURL('image/jpeg',.76);save();setScreen('entry')};r.readAsDataURL(file)}
 function deletePhoto(){delete state.photos[state.stop];save();renderEntry()}
@@ -125,4 +155,7 @@ async function downloadPDF(){
  doc.save(`sensory-trail-${state.date}.pdf`);
 }
 
+render();
+
+// Start the app
 render();
