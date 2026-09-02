@@ -23,7 +23,6 @@ function accessBar(){return `<div class="access"><button class="secondary" oncli
 
 const TRAIL_AUDIO='audio/sensory-trail-full.mp3';
 let trailAudio=null;
-let audioStopIndex=null;
 
 function stopTrailAudio(){
   if(trailAudio){
@@ -36,62 +35,44 @@ function stopTrailAudio(){
     trailAudio.onerror=null;
   }
   trailAudio=null;
-  audioStopIndex=null;
-  document.querySelectorAll('.audio-btn').forEach(btn=>{btn.textContent='▶ Play audio';btn.classList.remove('playing');});
 }
 
-function bindStopAudio(index,start,end){
-  trailAudio=document.getElementById('trailAudio');
-  if(!trailAudio)return;
-  audioStopIndex=index;
-  let positioned=false;
-  trailAudio.addEventListener('loadedmetadata',()=>{
-    if(!positioned){trailAudio.currentTime=start;positioned=true;}
-  },{once:true});
-  trailAudio.addEventListener('play',()=>{
-    if(trailAudio.currentTime<start || trailAudio.currentTime>=end-0.05)trailAudio.currentTime=start;
-    const btn=document.querySelector(`.audio-btn[data-stop="${index}"]`);
-    if(btn){btn.textContent='⏸ Pause';btn.classList.add('playing');}
-  });
-  trailAudio.addEventListener('pause',()=>{
-    const btn=document.querySelector(`.audio-btn[data-stop="${index}"]`);
-    if(btn){btn.textContent='▶ Play audio';btn.classList.remove('playing');}
-  });
-  trailAudio.addEventListener('timeupdate',()=>{
-    if(trailAudio.currentTime>=end){
-      trailAudio.pause();
-      trailAudio.currentTime=start;
+function setupStopAudio(index,start,end){
+  const audio=document.getElementById('trailAudio');
+  if(!audio)return;
+  trailAudio=audio;
+  audio.dataset.start=String(start);
+  audio.dataset.end=String(end);
+
+  audio.addEventListener('play',()=>{
+    const from=Number(audio.dataset.start);
+    const to=Number(audio.dataset.end);
+    if(audio.currentTime<from || audio.currentTime>=to-0.05){
+      audio.currentTime=from;
     }
   });
-  trailAudio.addEventListener('ended',()=>{trailAudio.currentTime=start;});
-  trailAudio.addEventListener('error',()=>{
+
+  audio.addEventListener('timeupdate',()=>{
+    const to=Number(audio.dataset.end);
+    if(audio.currentTime>=to){
+      audio.pause();
+      audio.currentTime=Number(audio.dataset.start);
+    }
+  });
+
+  audio.addEventListener('ended',()=>{
+    audio.currentTime=Number(audio.dataset.start);
+  });
+
+  audio.addEventListener('error',()=>{
     const box=document.querySelector('.audio-error');
     if(box)box.hidden=false;
   });
 }
 
-function playStopAudio(index){
-  const s=stops[index];
-  if(!s || s.audioStart==null || s.audioEnd==null)return;
-  const audio=document.getElementById('trailAudio');
-  if(!audio)return;
-  if(audioStopIndex===index && !audio.paused){audio.pause();return;}
-  if(audioStopIndex!==index){
-    stopTrailAudio();
-    render();
-    const fresh=document.getElementById('trailAudio');
-    if(!fresh)return;
-    bindStopAudio(index,Number(s.audioStart),Number(s.audioEnd));
-    fresh.currentTime=Number(s.audioStart);
-    fresh.play().catch(()=>{});
-  }else{
-    audio.play().catch(()=>{});
-  }
-}
-
 function audioBox(s,index){
   if(s.audioStart==null||s.audioEnd==null)return '';
-  return `<div class="card audio-card"><h3>🎧 Listen to your guide</h3><p>Listen to your guide as you explore this stop. You can also use the written prompts below, or enjoy both together.</p><audio id="trailAudio" preload="metadata" controls src="${TRAIL_AUDIO}" aria-label="Audio guide for ${esc(s.title)}"></audio><button class="secondary audio-btn" data-stop="${index}" onclick="playStopAudio(${index})">▶ Play audio</button><p class="small audio-error" hidden>Audio could not be loaded. Please check your internet connection and try again.</p></div>`;
+  return `<div class="card audio-card"><h3>🎧 Listen to your guide</h3><p>Listen to your guide as you explore this stop. You can also use the written prompts below, or enjoy both together.</p><audio id="trailAudio" preload="metadata" controls src="${TRAIL_AUDIO}" aria-label="Audio guide for ${esc(s.title)}"></audio><p class="small audio-error" hidden>Audio could not be loaded. Please check your internet connection and try again.</p></div>`;
 }
 
 function renderWelcome(){
@@ -111,7 +92,7 @@ function renderStop(){const s=stops[state.stop];
  <div class="card activity-card">${renderSections(s)}</div>
  <div class="card"><h3>Add to your journal</h3><div class="journal-prompts">${s.journal.map(j=>`<p>• ${j}</p>`).join('')}</div><div class="actions"><button class="action-btn" onclick="setScreen('entry')">✏️<span>Add a note</span></button><button class="action-btn" onclick="openPhotoPicker()">📷<span>Add a photo</span></button><button class="action-btn" onclick="setScreen('entry');setTimeout(setupCanvas,50)">🎨<span>Draw something</span></button></div><p class="small">You don't have to add anything — noticing is enough.</p></div>
  ${s.mindful?`<button class="secondary pause-btn" onclick="setScreen('mindful')">Take a one-minute pause</button>`:''}
- <div class="navrow"><button class="secondary" onclick="goBack()">← Back</button><button class="primary" onclick="nextStop()">${state.returnToSummary?'Return to My Trail':state.stop===stops.length-1?'Finish trail':'Next stop'} →</button></div>${accessBar()}<input id="photoPicker" class="hidden" type="file" accept="image/*" capture="environment" onchange="handlePhoto(event)"></section>`}
+ <div class="navrow"><button class="secondary" onclick="goBack()">← Back</button><button class="primary" onclick="nextStop()">${state.returnToSummary?'Return to My Trail':state.stop===stops.length-1?'Finish trail':'Next stop'} →</button></div>${accessBar()}<input id="photoPicker" class="hidden" type="file" accept="image/*" capture="environment" onchange="handlePhoto(event)"></section>`; setupStopAudio(state.stop,Number(s.audioStart),Number(s.audioEnd));}
 
 function renderMindful(){app.innerHTML=`<section class="screen mindful"><div class="card"><div class="leafmark">🍃</div><h2>Take a moment</h2><p>Put your phone down for one minute.</p><p><strong>Look around. Listen. See what you notice.</strong></p></div><button class="primary" onclick="setScreen('stop')">I've noticed something →</button></section>`}
 
