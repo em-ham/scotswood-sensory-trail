@@ -14,7 +14,8 @@ function loadState(){
  }catch{return {...defaultState,updatedAt:Date.now()}}
 }
 function save(){state.updatedAt=Date.now();localStorage.setItem(TRAIL_STORAGE_KEY,JSON.stringify(state));}
-function showPrivacy(){alert('YOUR PRIVACY\n\nYou do not need to give us your name, email address or create an account to use the Sensory Trail.\n\nNotes, drawings and photos you add are stored in this browser on this device and are used to create your personal Sensory Trail journal. This app does not send your journal entries, photos or drawings to Scotswood Garden.\n\nYour trail data is automatically cleared from this browser after 7 days of inactivity. You can also clear it at any time using “Start a new trail”.\n\nPlease avoid including personal information in your notes or taking photographs of other visitors without their permission.\n\nThe website is hosted by GitHub, which may process ordinary technical information such as IP address and browser/device information when serving the site.');}
+const PRIVACY_TEXT="YOUR PRIVACY\n\nYou do not need to give us your name, email address or create an account to use the Sensory Trail.\n\nNotes, drawings and photos you add are stored in this browser on this device and are used to create your personal Sensory Trail journal. This app does not send your journal entries, photos or drawings to Scotswood Garden.\n\nYour trail data is automatically cleared from this browser after 7 days of inactivity. You can also clear it at any time using \u201cStart a new trail\u201d.\n\nPlease avoid including personal information in your notes or taking photographs of other visitors without their permission.\n\nThe website is hosted by GitHub, which may process ordinary technical information such as IP address and browser/device information when serving the site.";
+function showPrivacy(){alert(PRIVACY_TEXT);}
 function setScreen(screen){stopSpeaking();state.screen=screen;save();render();window.scrollTo(0,0)}
 function esc(s=''){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
 function applyAccess(){document.documentElement.style.setProperty('--font-scale',state.largeText?'1.15':'1');document.body.classList.toggle('high-contrast',state.contrast)}
@@ -40,12 +41,21 @@ function renderWelcome(){
 
 function renderSections(s){return s.sections.map(sec=>`<div class="activity-block"><h3>${sec.label}</h3><p>${sec.text}</p>${sec.chips?`<p class="chips">${sec.chips}</p>`:''}${sec.bullets?`<ul>${sec.bullets.map(b=>`<li>${b}</li>`).join('')}</ul>`:''}</div>`).join('')}
 
+function setupTrailAudio(start,end){
+ const audio=document.getElementById('trailAudio');
+ if(!audio)return;
+ audio.addEventListener('loadedmetadata',()=>{audio.currentTime=start});
+ audio.addEventListener('play',()=>{if(audio.currentTime<start || audio.currentTime>=end) audio.currentTime=start});
+ audio.addEventListener('timeupdate',()=>{if(audio.currentTime>=end){audio.pause();audio.currentTime=start}});
+}
+
 function renderStop(){const s=stops[state.stop];
  app.innerHTML=`<section class="screen">${topbar()}<div><div class="leafmark">${s.icon}</div><h2>${state.stop+1} · ${s.title}</h2><div class="kicker">${s.kicker}</div><p class="stop-intro">${s.intro}</p></div>
+ <div class="card audio-card"><h3>🎧 Listen to your guide</h3><p>Listen to your guide as you explore this stop. You can also use the written prompts below, or enjoy both together.</p><audio id="trailAudio" preload="metadata" controls src="audio/sensory-trail-full.mp3" aria-label="Audio guide for ${esc(s.title)}"></audio></div>
  <div class="card activity-card">${renderSections(s)}</div>
  <div class="card"><h3>Add to your journal</h3><div class="journal-prompts">${s.journal.map(j=>`<p>• ${j}</p>`).join('')}</div><div class="actions"><button class="action-btn" onclick="setScreen('entry')">✏️<span>Add a note</span></button><button class="action-btn" onclick="openPhotoPicker()">📷<span>Add a photo</span></button><button class="action-btn" onclick="setScreen('entry');setTimeout(setupCanvas,50)">🎨<span>Draw something</span></button></div><p class="small">You don't have to add anything — noticing is enough.</p></div>
  ${s.mindful?`<button class="secondary pause-btn" onclick="setScreen('mindful')">Take a one-minute pause</button>`:''}
- <div class="navrow"><button class="secondary" onclick="goBack()">← Back</button><button class="primary" onclick="nextStop()">${state.returnToSummary?'Return to My Trail':state.stop===stops.length-1?'Finish trail':'Next stop'} →</button></div>${accessBar()}<input id="photoPicker" class="hidden" type="file" accept="image/*" capture="environment" onchange="handlePhoto(event)"></section>`}
+ <div class="navrow"><button class="secondary" onclick="goBack()">← Back</button><button class="primary" onclick="nextStop()">${state.returnToSummary?'Return to My Trail':state.stop===stops.length-1?'Finish trail':'Next stop'} →</button></div>${accessBar()}<input id="photoPicker" class="hidden" type="file" accept="image/*" capture="environment" onchange="handlePhoto(event)"></section>`; setupTrailAudio(Number(s.audioStart),Number(s.audioEnd));}
 
 function renderMindful(){app.innerHTML=`<section class="screen mindful"><div class="card"><div class="leafmark">🍃</div><h2>Take a moment</h2><p>Put your phone down for one minute.</p><p><strong>Look around. Listen. See what you notice.</strong></p></div><button class="primary" onclick="setScreen('stop')">I've noticed something →</button></section>`}
 
@@ -71,80 +81,24 @@ function goBack(){stopSpeaking();if(state.screen==='entry'||state.screen==='mind
 function toggleLarge(){state.largeText=!state.largeText;save();render()}
 function toggleContrast(){state.contrast=!state.contrast;save();render()}
 let currentUtterance=null;
-
-function updateSpeechButtons(speaking){
-  document.querySelectorAll('.listen-btn').forEach(btn=>{
-    btn.textContent=speaking?'■ Stop reading':'🔊 Listen';
-    btn.classList.toggle('speaking',speaking);
-    btn.setAttribute('aria-pressed',speaking?'true':'false');
-    btn.setAttribute('aria-label',speaking?'Stop reading aloud':'Read this page aloud');
-  });
-}
-
-function stopSpeaking(){
-  if('speechSynthesis' in window){
-    window.speechSynthesis.cancel();
-  }
-  currentUtterance=null;
-  updateSpeechButtons(false);
-}
-
+function updateSpeechButtons(speaking){document.querySelectorAll('.listen-btn').forEach(btn=>{btn.textContent=speaking?'■ Stop reading':'🔊 Listen';btn.classList.toggle('speaking',speaking);btn.setAttribute('aria-pressed',speaking?'true':'false');btn.setAttribute('aria-label',speaking?'Stop reading aloud':'Read this page aloud')})}
+function stopSpeaking(){if('speechSynthesis' in window){speechSynthesis.cancel()}currentUtterance=null;updateSpeechButtons(false)}
 function toggleSpeech(){
-  if(!('speechSynthesis' in window)){
-    alert('Read aloud is not supported in this browser.');
-    return;
-  }
-
-  const synth=window.speechSynthesis;
-
-  if(synth.speaking || currentUtterance){
-    stopSpeaking();
-    return;
-  }
-
-  const clone=app.cloneNode(true);
-
-  clone.querySelectorAll('.access,.iconbtn,.navrow,.actions,.edit-btn,.privacy-link,input,textarea,canvas,.canvas-tools,button').forEach(el=>el.remove());
-
-  const text=clone.innerText.replace(/\s+/g,' ').trim();
-
-  if(!text){
-    alert('There is nothing to read on this page.');
-    return;
-  }
-
-  try{
-    currentUtterance=new SpeechSynthesisUtterance(text);
-    currentUtterance.lang='en-GB';
-    currentUtterance.rate=0.9;
-
-    currentUtterance.onend=()=>{
-      currentUtterance=null;
-      updateSpeechButtons(false);
-    };
-
-    currentUtterance.onerror=()=>{
-      currentUtterance=null;
-      updateSpeechButtons(false);
-    };
-
-    synth.cancel();
-
-    // Change the button immediately.
-    updateSpeechButtons(true);
-
-    synth.speak(currentUtterance);
-
-  }catch(error){
-    currentUtterance=null;
-    updateSpeechButtons(false);
-    alert('Read aloud could not be started. Please try again.');
-  }
+ if(!('speechSynthesis' in window))return alert('Read aloud is not supported in this browser.');
+ if(speechSynthesis.speaking || currentUtterance){stopSpeaking();return}
+ const clone=app.cloneNode(true);
+ clone.querySelectorAll('.access,.iconbtn,.navrow,.actions,.edit-btn,.privacy-link,input,textarea,canvas,.canvas-tools,button').forEach(el=>el.remove());
+ const text=clone.innerText.replace(/\s+/g,' ').trim();
+ if(!text)return;
+ currentUtterance=new SpeechSynthesisUtterance(text);
+ currentUtterance.onstart=()=>updateSpeechButtons(true);
+ currentUtterance.onend=()=>{currentUtterance=null;updateSpeechButtons(false)};
+ currentUtterance.onerror=()=>{currentUtterance=null;updateSpeechButtons(false)};
+ speechSynthesis.cancel();
+ speechSynthesis.speak(currentUtterance);
+ updateSpeechButtons(true);
 }
-
-function speakCurrent(){
-  toggleSpeech();
-}
+function speakCurrent(){toggleSpeech()}
 function openPhotoPicker(){document.getElementById('photoPicker')?.click()}
 function handlePhoto(e){const file=e.target.files[0];if(!file)return; const img=new Image(), r=new FileReader(); r.onload=ev=>img.src=ev.target.result; img.onload=()=>{const max=1200, scale=Math.min(1,max/Math.max(img.width,img.height)); const c=document.createElement('canvas');c.width=Math.max(1,Math.round(img.width*scale));c.height=Math.max(1,Math.round(img.height*scale));c.getContext('2d').drawImage(img,0,0,c.width,c.height);state.photos[state.stop]=c.toDataURL('image/jpeg',.76);save();setScreen('entry')};r.readAsDataURL(file)}
 function deletePhoto(){delete state.photos[state.stop];save();renderEntry()}
