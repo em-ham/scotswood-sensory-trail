@@ -19,51 +19,84 @@ function setScreen(screen){stopSpeaking();state.screen=screen;save();render();wi
 function esc(s=''){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
 function applyAccess(){document.documentElement.style.setProperty('--font-scale',state.largeText?'1.15':'1');document.body.classList.toggle('high-contrast',state.contrast)}
 function topbar(){return `<div class="topbar"><button class="iconbtn" onclick="goBack()" aria-label="Go back">←</button><div class="brand-mini"><img src="scotswood-logo.png" alt=""><span>Scotswood Garden</span></div><div class="progress">Stop ${state.stop+1} of ${stops.length}</div><button class="iconbtn" onclick="setScreen('summary')" aria-label="Open my trail">☰</button></div>`}
-function accessBar(){return `<div class="access"><button class="secondary" onclick="toggleLarge()">A+ Text</button><button class="secondary" onclick="toggleContrast()">◐ Contrast</button><button class="secondary listen-btn" onclick="toggleSpeech()" aria-pressed="false">🔊 Listen</button></div>`}
+function accessBar(){return `<div class="access"><button class="secondary" onclick="toggleLarge()">A+ Text</button><button class="secondary" onclick="toggleContrast()">◐ Contrast</button></div>`}
 
-const TRAIL_AUDIO='sensory-trail-full.mp3';
+const TRAIL_AUDIO='audio/sensory-trail-full.mp3';
 let trailAudio=null;
 let audioStopIndex=null;
-function stopTrailAudio(){if(trailAudio){trailAudio.pause();trailAudio.currentTime=0;trailAudio.ontimeupdate=null;trailAudio.onended=null;}document.querySelectorAll('.audio-btn').forEach(btn=>{btn.textContent='▶ Play audio';btn.classList.remove('playing');});audioStopIndex=null;}
+
+function stopTrailAudio(){
+  if(trailAudio){
+    trailAudio.pause();
+    trailAudio.currentTime=0;
+    trailAudio.onplay=null;
+    trailAudio.onpause=null;
+    trailAudio.onended=null;
+    trailAudio.ontimeupdate=null;
+    trailAudio.onerror=null;
+  }
+  trailAudio=null;
+  audioStopIndex=null;
+  document.querySelectorAll('.audio-btn').forEach(btn=>{btn.textContent='▶ Play audio';btn.classList.remove('playing');});
+}
+
+function bindStopAudio(index,start,end){
+  trailAudio=document.getElementById('trailAudio');
+  if(!trailAudio)return;
+  audioStopIndex=index;
+  let positioned=false;
+  trailAudio.addEventListener('loadedmetadata',()=>{
+    if(!positioned){trailAudio.currentTime=start;positioned=true;}
+  },{once:true});
+  trailAudio.addEventListener('play',()=>{
+    if(trailAudio.currentTime<start || trailAudio.currentTime>=end-0.05)trailAudio.currentTime=start;
+    const btn=document.querySelector(`.audio-btn[data-stop="${index}"]`);
+    if(btn){btn.textContent='⏸ Pause';btn.classList.add('playing');}
+  });
+  trailAudio.addEventListener('pause',()=>{
+    const btn=document.querySelector(`.audio-btn[data-stop="${index}"]`);
+    if(btn){btn.textContent='▶ Play audio';btn.classList.remove('playing');}
+  });
+  trailAudio.addEventListener('timeupdate',()=>{
+    if(trailAudio.currentTime>=end){
+      trailAudio.pause();
+      trailAudio.currentTime=start;
+    }
+  });
+  trailAudio.addEventListener('ended',()=>{trailAudio.currentTime=start;});
+  trailAudio.addEventListener('error',()=>{
+    const box=document.querySelector('.audio-error');
+    if(box)box.hidden=false;
+  });
+}
+
 function playStopAudio(index){
   const s=stops[index];
   if(!s || s.audioStart==null || s.audioEnd==null)return;
-  if(trailAudio && audioStopIndex===index && !trailAudio.paused){trailAudio.pause();document.querySelectorAll('.audio-btn').forEach(btn=>btn.textContent='▶ Play audio');return;}
-  stopTrailAudio();
-  trailAudio=new Audio(TRAIL_AUDIO);
-  audioStopIndex=index;
-  const btn=document.querySelector(`.audio-btn[data-stop="${index}"]`);
-  const start=Number(s.audioStart), end=Number(s.audioEnd);
-  const begin=()=>{trailAudio.currentTime=start;trailAudio.play().catch(()=>alert('The audio could not be played. Please tap Play again.'));if(btn){btn.textContent='⏸ Pause';btn.classList.add('playing');}};
-  trailAudio.addEventListener('loadedmetadata',begin,{once:true});
-  trailAudio.ontimeupdate=()=>{if(trailAudio.currentTime>=end){stopTrailAudio();}};
-  trailAudio.onended=stopTrailAudio;
-  trailAudio.load();
+  const audio=document.getElementById('trailAudio');
+  if(!audio)return;
+  if(audioStopIndex===index && !audio.paused){audio.pause();return;}
+  if(audioStopIndex!==index){
+    stopTrailAudio();
+    render();
+    const fresh=document.getElementById('trailAudio');
+    if(!fresh)return;
+    bindStopAudio(index,Number(s.audioStart),Number(s.audioEnd));
+    fresh.currentTime=Number(s.audioStart);
+    fresh.play().catch(()=>{});
+  }else{
+    audio.play().catch(()=>{});
+  }
 }
-function playFullAudio(){
-  if(trailAudio && audioStopIndex==='full' && !trailAudio.paused){trailAudio.pause();document.querySelectorAll('.full-audio-btn').forEach(btn=>btn.textContent='▶ Play full audio');return;}
-  stopTrailAudio();
-  trailAudio=new Audio(TRAIL_AUDIO);audioStopIndex='full';
-  const btn=document.querySelector('.full-audio-btn');
-  trailAudio.onplay=()=>{if(btn)btn.textContent='⏸ Pause full audio';};
-  trailAudio.onended=()=>{stopTrailAudio();};
-  trailAudio.onerror=()=>{stopTrailAudio();alert('The audio could not be loaded.');};
-  trailAudio.play().catch(()=>alert('The audio could not be played. Please tap Play again.'));
-}
-function audioBox(s,index){if(s.audioStart==null||s.audioEnd==null)return '';return `<div class="card audio-card"><h3>🎧 Listen to this part of the trail</h3><p>Listen to your guide as you explore this stop. You can also use the written prompts below, or enjoy both together.</p><button class="secondary audio-btn" data-stop="${index}" onclick="playStopAudio(${index})">▶ Play audio</button></div>`;}
 
-function render(){
- applyAccess();
- if(state.screen==='welcome') return renderWelcome();
- if(state.screen==='stop') return renderStop();
- if(state.screen==='mindful') return renderMindful();
- if(state.screen==='entry') return renderEntry();
- if(state.screen==='summary') return renderSummary();
+function audioBox(s,index){
+  if(s.audioStart==null||s.audioEnd==null)return '';
+  return `<div class="card audio-card"><h3>🎧 Listen to your guide</h3><p>Listen to your guide as you explore this stop. You can also use the written prompts below, or enjoy both together.</p><audio id="trailAudio" preload="metadata" controls src="${TRAIL_AUDIO}" aria-label="Audio guide for ${esc(s.title)}"></audio><button class="secondary audio-btn" data-stop="${index}" onclick="playStopAudio(${index})">▶ Play audio</button><p class="small audio-error" hidden>Audio could not be loaded. Please check your internet connection and try again.</p></div>`;
 }
 
 function renderWelcome(){
  app.innerHTML=`<section class="screen"><div class="hero"><div class="welcome-brand"><img src="scotswood-logo.png" alt="Scotswood Garden"><div class="welcome-brand-name">Scotswood Garden</div></div><h1>Sensory Trail</h1><p>Take a little time to notice</p></div>
- <div class="card soft"><p>Follow the trail and use the prompts to explore the garden through your senses.</p><p>At each stop, you’ll find a few suggested activities. There is no need to do them all. They are simply invitations to <strong>slow down, look a little closer, listen, smell, touch and notice what is around you.</strong></p><p>You can make notes, take photos or draw as you go — or simply enjoy the experience. You can come back and add your thoughts at the end.</p><p>Slowing down and paying attention to our senses can help us feel more present and connected to the world around us.</p><h2 class="small-heading">🎧 Listen as you explore</h2><p>You can listen to the Sensory Trail audio as you make your way around the garden. Your guide will invite you to notice different <strong>sights, sounds, smells, textures and feelings</strong> along the way.</p><p><strong>The audio and written trail work together.</strong> You can listen to the audio while exploring each stop, use the written prompts, or enjoy both.</p><p>You don’t have to complete every activity. Simply notice what interests you and take the trail at your own pace.</p><button class="secondary full-audio-btn" onclick="playFullAudio()">▶ Play full audio</button><p class="small">Complete audio guide · about 6½ minutes</p><button class="privacy-link" onclick="showPrivacy()">Privacy & your trail data</button></div>
+ <div class="card soft"><p>Follow the trail and use the prompts to explore the garden through your senses.</p><p>At each stop, you’ll find a few suggested activities. There is no need to do them all. They are simply invitations to <strong>slow down, look a little closer, listen, smell, touch and notice what is around you.</strong></p><p>As you go, you can <strong>listen to the audio guide, use the written activities, or both.</strong></p><p>You can also <strong>make notes, take photos or draw</strong> as you explore — or simply enjoy the experience. You can return to any stop to add or change your thoughts and, at the end, <strong>download your trail journal as a PDF.</strong></p><p>Slowing down and paying attention to our senses can help us feel more present and connected to the world around us.</p><button class="privacy-link" onclick="showPrivacy()">Privacy & your trail data</button></div>
  <div class="card"><h3>Activity key</h3><div class="key-grid"><span>👁️ <strong>LOOK</strong></span><span>👂 <strong>LISTEN</strong></span><span>👃 <strong>SMELL</strong></span><span>🤚 <strong>TOUCH & FEEL</strong></span><span>🧠 <strong>THINK & REMEMBER</strong></span></div></div>
  <div class="card"><label>Today's date</label><input type="text" value="${esc(state.date)}" onchange="state.date=this.value;save()"><p><strong>What season does it feel like today?</strong></p><div class="choices">${['Spring','Summer','Autumn','Winter'].map(x=>`<button class="choice ${state.season===x?'selected':''}" onclick="state.season='${x}';save();render()">${x}</button>`).join('')}</div></div>
  <button class="primary" onclick="state.stop=0;state.returnToSummary=false;setScreen('stop')">Start the trail →</button>${accessBar()}</section>`;
