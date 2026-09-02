@@ -156,3 +156,6 @@ async function downloadPDF(){
 }
 
 render();
+
+// Start the app
+render();
