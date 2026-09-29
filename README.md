@@ -1,8 +1,18 @@
 # Scotswood Garden Digital Sensory Trail
 
-This folder contains the complete standalone Sensory Trail web app.
+This repository contains the complete standalone Sensory Trail web app for Scotswood Garden.
 
-The app is currently hosted using GitHub Pages. It is built using standard HTML, CSS and JavaScript, so it can also be moved to another web host or incorporated into a future Scotswood Garden website.
+## Live trail
+
+The current live trail is:
+
+https://em-ham.github.io/scotswood-sensory-trail/
+
+Printed QR codes currently point to this address.
+
+**Important:** Do not change the GitHub Pages address, repository name or Pages settings without checking the QR codes and testing the live trail first.
+
+The app is hosted using GitHub Pages. It is built using standard HTML, CSS and JavaScript, so it can also be moved to another web host or incorporated into a future Scotswood Garden website.
 
 ## The file staff are most likely to edit
 
@@ -21,6 +31,18 @@ You can edit:
 - stop icons
 
 The rest of the app should normally be left alone unless someone is comfortable with HTML, CSS or JavaScript.
+
+## Audio guide
+
+The recorded audio guide is stored in:
+
+`audio/sensory-trail-full.mp3`
+
+The audio is built into the trail.
+
+Stop 6 – Accessible Garden – has written sensory prompts but is not included in the recorded audio.
+
+Do not rename, move or replace the audio file without testing the whole trail afterwards.
 
 ## Other files
 
@@ -63,13 +85,16 @@ The current app:
 - provides a Start a New Trail option to clear the current trail
 - does not send visitors' journal content to Scotswood Garden
 
-The website is hosted using GitHub Pages.
+The website is hosted using GitHub Pages, which may process ordinary technical information needed to provide the website.
+
+Visitors should avoid entering personal or sensitive information into their trail journal.
 
 ## Before making major changes
 
 Test:
 
 - the trail on a phone
+- the QR code
 - notes, photos and drawings
 - PDF generation
 - Back and Next buttons
@@ -79,6 +104,7 @@ Test:
 - enlarged text
 - high contrast
 - the privacy information
+- the audio guide at several stops
 
 ## Moving the app in future
 
@@ -92,6 +118,18 @@ The main requirement is that all the files remain together and the file paths in
 
 ## Ownership and handover
 
-The GitHub repository should eventually be owned or controlled by Scotswood Garden so that the app is not dependent on one individual member of staff or volunteer.
+The project was originally developed in a personal GitHub repository and is being handed over to the **Scotswood Garden GitHub organisation**:
+
+https://github.com/Scotswood-Garden
+
+The aim is for the garden to manage the repository and the trail independently of the original developer.
 
 Future staff or developers can use this README as a guide to the structure and maintenance of the app.
+
+### Important QR-code note
+
+The printed QR codes currently point to the original GitHub Pages address shown above.
+
+GitHub Pages addresses do not automatically redirect when a repository is transferred to another owner.
+
+Therefore, **the QR-code address must be tested and protected as part of any repository ownership transfer. Do not delete or recreate repositories, change the repository name, or change GitHub Pages settings without first checking the effect on the printed QR codes.**
